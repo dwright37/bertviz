@@ -27,16 +27,18 @@ class AttentionVisualizer:
         self.tokenizer = tokenizer
         self.model.eval()
 
-    def get_viz_data(self, sentence_a, sentence_b):
+    def get_viz_data(self, sentence_a, sentence_b = None):
         tokens_tensor, token_type_tensor, tokens_a, tokens_b = self._get_inputs(sentence_a, sentence_b)
         attn = self._get_attention(tokens_tensor, token_type_tensor)
         return tokens_a, tokens_b, attn
 
-    def _get_inputs(self, sentence_a, sentence_b):
+    def _get_inputs(self, sentence_a, sentence_b = None):
         tokens_a = self.tokenizer.tokenize(sentence_a)
-        tokens_b = self.tokenizer.tokenize(sentence_b)
         tokens_a_delim = ['[CLS]'] + tokens_a + ['[SEP]']
-        tokens_b_delim = tokens_b + ['[SEP]']
+        tokens_b_delim = []
+        if sentence_b is not None:
+            tokens_b = self.tokenizer.tokenize(sentence_b)
+            tokens_b_delim = tokens_b + ['[SEP]']
         token_ids = self.tokenizer.convert_tokens_to_ids(tokens_a_delim + tokens_b_delim)
         tokens_tensor = torch.tensor([token_ids])
         token_type_tensor = torch.LongTensor([[0] * len(tokens_a_delim) + [1] * len(tokens_b_delim)])

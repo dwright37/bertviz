@@ -2,6 +2,7 @@ import torch
 import json
 import os
 import IPython.display as display
+import string
 
 class AttentionMapData:
     """Represents data needed for attention map visualization"""
@@ -10,18 +11,24 @@ class AttentionMapData:
         self.model = model
         self.tokenizer = tokenizer
         self.model.eval()
+        self.translator = str.maketrans(string.punctuation, ' ' * len(string.punctuation))
 
-    def get_data(self, sentence_a, sentence_b):
+    def get_data(self, sentence_a, sentence_b = None):
         tokens_tensor, token_type_tensor, tokens_a, tokens_b = self._get_inputs(sentence_a, sentence_b)
         _, _, attn_data_list = self.model(tokens_tensor, token_type_ids=token_type_tensor)
         attn_tensor = torch.stack([attn_data['attn_probs'] for attn_data in attn_data_list])
         return tokens_a, tokens_b, attn_tensor.data.numpy()
 
-    def _get_inputs(self, sentence_a, sentence_b):
+    def _get_inputs(self, sentence_a, sentence_b = None):
+        #Try: remove punctuation
+        #sentence_a = sentence_a.translate(self.translator).lower()
         tokens_a = self.tokenizer.tokenize(sentence_a)
-        tokens_b = self.tokenizer.tokenize(sentence_b)
         tokens_a_delim = ['[CLS]'] + tokens_a + ['[SEP]']
-        tokens_b_delim = tokens_b + ['[SEP]']
+        
+        tokens_b_delim = []
+        if sentence_b is not None:
+            tokens_b = self.tokenizer.tokenize(sentence_b)
+            tokens_b_delim = tokens_b + ['[SEP]']
         token_ids = self.tokenizer.convert_tokens_to_ids(tokens_a_delim + tokens_b_delim)
         tokens_tensor = torch.tensor([token_ids])
         token_type_tensor = torch.LongTensor([[0] * len(tokens_a_delim) + [1] * len(tokens_b_delim)])
